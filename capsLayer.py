@@ -44,6 +44,7 @@ class CapsLayer(object):
             if not self.with_routing:
                 # the PrimaryCaps layer, a convolutional layer
                 # input: [batch_size, 20, 20, 256]
+
                 #assert input.get_shape() == [cfg.batch_size, 20, 20, 256]
 
                 '''
@@ -57,9 +58,10 @@ class CapsLayer(object):
                                                           padding="VALID", activation_fn=None)
                         caps_i = tf.reshape(caps_i, shape=(cfg.batch_size, -1, 1, 1))
                         capsules.append(caps_i)
-                assert capsules[0].get_shape() == [cfg.batch_size, 1152, 1, 1]
+                assert capsules[0].get_shape() == [cfg.batch_size, 288, 1, 1]
                 capsules = tf.concat(capsules, axis=2)
                 '''
+
 
                 # version 2, equivalent to version 1 but higher computational
                 # efficiency.
@@ -75,32 +77,30 @@ class CapsLayer(object):
                 #                                    activation_fn=None)
                 capsules = tf.reshape(capsules, (cfg.batch_size, -1, self.vec_len, 1))
 
-                # [batch_size, 1152, 8, 1]
+                # [batch_size, 288, 8, 1]
                 capsules = squash(capsules)
-                #assert capsules.get_shape() == [cfg.batch_size, 1152, 8, 1]
+
+                #assert capsules.get_shape() == [cfg.batch_size, 288, 8, 1]
+
                 return(capsules)
 
         if self.layer_type == 'FC':
             if self.with_routing:
                 # the DigitCaps layer, a fully connected layer
-                # Reshape the input into [batch_size, 1152, 1, 8, 1]
+                # Reshape the input into [batch_size, 288, 1, 8, 1]
                 self.input = tf.reshape(input, shape=(cfg.batch_size, -1, 1, input.shape[-2].value, 1))
-
-                _, a1, _, a3, _ = self.input.shape
-                a1 = int(a1)
-                a3 = int(a3)
 
                 with tf.variable_scope('routing'):
                     # b_IJ: [batch_size, num_caps_l, num_caps_l_plus_1, 1, 1],
                     # about the reason of using 'batch_size', see issue #21
                     b_IJ = tf.constant(np.zeros([cfg.batch_size, input.shape[1].value, self.num_outputs, 1, 1], dtype=np.float32))
-                    capsules = routing(self.input, b_IJ,a1, self.num_outputs, a3, self.vec_len)
+                    capsules = routing(self.input, b_IJ)
                     capsules = tf.squeeze(capsules, axis=1)
 
             return(capsules)
 
 
-def routing(input, b_IJ, a1, a2, a3, a4):
+def routing(input, b_IJ):
     ''' The routing algorithm.
 
     Args:
@@ -115,14 +115,14 @@ def routing(input, b_IJ, a1, a2, a3, a4):
      '''
 
     # W: [num_caps_i, num_caps_j, len_u_i, len_v_j]
-    W = tf.get_variable('Weight', shape=(1, a1, a2, a3, a4), dtype=tf.float32,
+    W = tf.get_variable('Weight', shape=(1, 288, 10, 8, 16), dtype=tf.float32,
                         initializer=tf.random_normal_initializer(stddev=cfg.stddev))
 
     # Eq.2, calc u_hat
     # do tiling for input and W before matmul
     # input => [batch_size, 288, 10, 8, 1]
     # W => [batch_size, 288, 10, 8, 16]
-    input = tf.tile(input, [1, 1, a2, 1, 1])
+    input = tf.tile(input, [1, 1, 10, 1, 1])
     W = tf.tile(W, [cfg.batch_size, 1, 1, 1, 1])
 
     # in last 2 dims:
@@ -154,7 +154,6 @@ def routing(input, b_IJ, a1, a2, a3, a4):
                 # line 6:
                 # squash using Eq.1,
                 v_J = squash(s_J)
-                assert v_J.get_shape() == [cfg.batch_size, 1, a2, a4, 1]
             elif r_iter < cfg.iter_routing - 1:  # Inner iterations, do not apply backpropagation
                 s_J = tf.multiply(c_IJ, u_hat_stopped)
                 s_J = tf.reduce_sum(s_J, axis=1, keep_dims=True)
@@ -164,8 +163,7 @@ def routing(input, b_IJ, a1, a2, a3, a4):
                 # reshape & tile v_j from [batch_size ,1, 10, 16, 1] to [batch_size, 288, 10, 16, 1]
                 # then matmul in the last tow dim: [16, 1].T x [16, 1] => [1, 1], reduce mean in the
                 # batch_size dim, resulting in [1, 288, 10, 1, 1]
-
-                v_J_tiled = tf.tile(v_J, [1, a1, 1, 1, 1])
+                v_J_tiled = tf.tile(v_J, [1, 288, 1, 1, 1])
                 u_produce_v = tf.matmul(u_hat_stopped, v_J_tiled, transpose_a=True)
 
                 # b_IJ += tf.reduce_sum(u_produce_v, axis=0, keep_dims=True)
