@@ -44,7 +44,7 @@ class CapsLayer(object):
             if not self.with_routing:
                 # the PrimaryCaps layer, a convolutional layer
                 # input: [batch_size, 20, 20, 256]
-                assert input.get_shape() == [cfg.batch_size, 20, 20, 256]
+                #assert input.get_shape() == [cfg.batch_size, 20, 20, 256]
 
                 '''
                 # version 1, computational expensive
@@ -77,7 +77,7 @@ class CapsLayer(object):
 
                 # [batch_size, 1152, 8, 1]
                 capsules = squash(capsules)
-                assert capsules.get_shape() == [cfg.batch_size, 1152, 8, 1]
+                #assert capsules.get_shape() == [cfg.batch_size, 1152, 8, 1]
                 return(capsules)
 
         if self.layer_type == 'FC':
@@ -120,7 +120,7 @@ def routing(input, b_IJ):
     # W => [batch_size, 1152, 10, 8, 16]
     input = tf.tile(input, [1, 1, 10, 1, 1])
     W = tf.tile(W, [cfg.batch_size, 1, 1, 1, 1])
-    assert input.get_shape() == [cfg.batch_size, 1152, 10, 8, 1]
+    #assert input.get_shape() == [cfg.batch_size, 1152, 10, 8, 1]
 
     # in last 2 dims:
     # [8, 16].T x [8, 1] => [16, 1] => [batch_size, 1152, 10, 16, 1]
@@ -128,7 +128,7 @@ def routing(input, b_IJ):
     # u_hat = tf.scan(lambda ac, x: tf.matmul(W, x, transpose_a=True), input, initializer=tf.zeros([1152, 10, 16, 1]))
     # tf.tile, 3 iter, 1080ti, 128 batch size: 6min/epoch
     u_hat = tf.matmul(W, input, transpose_a=True)
-    assert u_hat.get_shape() == [cfg.batch_size, 1152, 10, 16, 1]
+    #assert u_hat.get_shape() == [cfg.batch_size, 1152, 10, 16, 1]
 
     # In forward, u_hat_stopped = u_hat; in backward, no gradient passed back from u_hat_stopped to u_hat
     u_hat_stopped = tf.stop_gradient(u_hat, name='stop_gradient')
@@ -148,12 +148,12 @@ def routing(input, b_IJ):
                 s_J = tf.multiply(c_IJ, u_hat)
                 # then sum in the second dim, resulting in [batch_size, 1, 10, 16, 1]
                 s_J = tf.reduce_sum(s_J, axis=1, keep_dims=True)
-                assert s_J.get_shape() == [cfg.batch_size, 1, 10, 16, 1]
+                #assert s_J.get_shape() == [cfg.batch_size, 1, 10, 16, 1]
 
                 # line 6:
                 # squash using Eq.1,
                 v_J = squash(s_J)
-                assert v_J.get_shape() == [cfg.batch_size, 1, 10, 16, 1]
+                #assert v_J.get_shape() == [cfg.batch_size, 1, 10, 16, 1]
             elif r_iter < cfg.iter_routing - 1:  # Inner iterations, do not apply backpropagation
                 s_J = tf.multiply(c_IJ, u_hat_stopped)
                 s_J = tf.reduce_sum(s_J, axis=1, keep_dims=True)
@@ -165,7 +165,7 @@ def routing(input, b_IJ):
                 # batch_size dim, resulting in [1, 1152, 10, 1, 1]
                 v_J_tiled = tf.tile(v_J, [1, 1152, 1, 1, 1])
                 u_produce_v = tf.matmul(u_hat_stopped, v_J_tiled, transpose_a=True)
-                assert u_produce_v.get_shape() == [cfg.batch_size, 1152, 10, 1, 1]
+                #assert u_produce_v.get_shape() == [cfg.batch_size, 1152, 10, 1, 1]
 
                 # b_IJ += tf.reduce_sum(u_produce_v, axis=0, keep_dims=True)
                 b_IJ += u_produce_v
