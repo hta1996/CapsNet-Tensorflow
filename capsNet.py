@@ -50,9 +50,9 @@ class CapsNet(object):
 
         # Primary Capsules layer, return [batch_size, 1152, 8, 1]
         with tf.variable_scope('PrimaryCaps_layer'):
-            primaryCaps = CapsLayer(num_outputs=32, vec_len=8, with_routing=False, layer_type='CONV')
+            primaryCaps = CapsLayer(num_outputs=8, vec_len=8, with_routing=False, layer_type='CONV')
             caps1 = primaryCaps(conv1, kernel_size=9, stride=2)
-            assert caps1.get_shape() == [cfg.batch_size, 1152, 8, 1]
+            #assert caps1.get_shape() == [cfg.batch_size, 1152, 8, 1]
 
         # DigitCaps layer, return [batch_size, 10, 16, 1]
         with tf.variable_scope('DigitCaps_layer'):
@@ -67,12 +67,12 @@ class CapsNet(object):
             self.v_length = tf.sqrt(tf.reduce_sum(tf.square(self.caps2),
                                                   axis=2, keep_dims=True) + epsilon)
             self.softmax_v = tf.nn.softmax(self.v_length, dim=1)
-            assert self.softmax_v.get_shape() == [cfg.batch_size, 10, 1, 1]
+            #assert self.softmax_v.get_shape() == [cfg.batch_size, 10, 1, 1]
 
             # b). pick out the index of max softmax val of the 10 caps
             # [batch_size, 10, 1, 1] => [batch_size] (index)
             self.argmax_idx = tf.to_int32(tf.argmax(self.softmax_v, axis=1))
-            assert self.argmax_idx.get_shape() == [cfg.batch_size, 1, 1]
+            #assert self.argmax_idx.get_shape() == [cfg.batch_size, 1, 1]
             self.argmax_idx = tf.reshape(self.argmax_idx, shape=(cfg.batch_size, ))
 
             # Method 1.
@@ -86,7 +86,7 @@ class CapsNet(object):
                     masked_v.append(tf.reshape(v, shape=(1, 1, 16, 1)))
 
                 self.masked_v = tf.concat(masked_v, axis=0)
-                assert self.masked_v.get_shape() == [cfg.batch_size, 1, 16, 1]
+                #assert self.masked_v.get_shape() == [cfg.batch_size, 1, 16, 1]
             # Method 2. masking with true label, default mode
             else:
                 # self.masked_v = tf.matmul(tf.squeeze(self.caps2), tf.reshape(self.Y, (-1, 10, 1)), transpose_a=True)
@@ -97,10 +97,10 @@ class CapsNet(object):
         # [batch_size, 1, 16, 1] => [batch_size, 16] => [batch_size, 512]
         with tf.variable_scope('Decoder'):
             vector_j = tf.reshape(self.masked_v, shape=(cfg.batch_size, -1))
-            fc1 = tf.contrib.layers.fully_connected(vector_j, num_outputs=512)
-            assert fc1.get_shape() == [cfg.batch_size, 512]
-            fc2 = tf.contrib.layers.fully_connected(fc1, num_outputs=1024)
-            assert fc2.get_shape() == [cfg.batch_size, 1024]
+            fc1 = tf.contrib.layers.fully_connected(vector_j, num_outputs=256)
+            #assert fc1.get_shape() == [cfg.batch_size, 512]
+            fc2 = tf.contrib.layers.fully_connected(fc1, num_outputs=512)
+            #assert fc2.get_shape() == [cfg.batch_size, 1024]
             self.decoded = tf.contrib.layers.fully_connected(fc2, num_outputs=784, activation_fn=tf.sigmoid)
 
     def loss(self):
