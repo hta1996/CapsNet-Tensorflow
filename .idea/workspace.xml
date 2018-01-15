@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="a0374c3b-acd0-48af-8164-7cae73b0b680" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/capsNet.py" afterPath="$PROJECT_DIR$/capsNet.py" />
-      <change beforePath="$PROJECT_DIR$/config.py" afterPath="$PROJECT_DIR$/config.py" />
-    </list>
+    <list default="true" id="a0374c3b-acd0-48af-8164-7cae73b0b680" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
