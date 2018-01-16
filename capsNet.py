@@ -5,6 +5,8 @@ E-mail: naturomics.liao@gmail.com
 """
 
 import tensorflow as tf
+import time
+
 
 from config import cfg
 from utils import get_batch_data
